@@ -1,66 +1,77 @@
 import random
-import turtle as myTurtle
-myTurtle.speed(0)
-myTurtle.shape("square")
-myTurtle.color("yellow")
+
+from tkinter import *
+
+
+class NButton(Button):
+    def __init__(self, master, name=None, *args, **kwargs):
+        Button.__init__(self, master, *args, **kwargs)
+        self.master, self.name = master, name
+
+
+master = Tk()
+master.title("Main window")
+master.geometry("800x600")
+master.resizable(0, 0)
 
 
 class cell:
-    def __init__(self, pos, state=None):
+    def __init__(self, pos, btn, state=None):
         self.pos = pos                          # coordinates in terms of x, y
-        self.is_bomb = False                       
+        self.is_bomb = False
         self.nearby = 0                      # number of bombs in adjacent 8 cells
-        self.revealed = False                   
+        self.revealed = False
         self.stampId = None
+        self.btn = btn
 
-class Grid:
+
+class myGrid:
     def __init__(self, gridSize):
         self.gridSize = gridSize
-        self.cellSize = 10
-        self.locations = [[None for x in range(self.gridSize)] for y in range(self.gridSize)]
+        self.locations = [[0 for x in range(
+            self.gridSize)] for y in range(self.gridSize)]
         self.total_bombs = self.gridSize**2 // 8
-        #myTurtle.turtlesize(self.cellSize/20, self.cellSize/20)
 
     def setup(self):
         self.draw()
         self.set_bombs()
-        myTurtle.ht()
-    
-    def draw(self):
-        #myTurtle.dot(5, "blue")
-        myTurtle.pu()
-        x0 = -((20*self.gridSize/2) + (10*(self.gridSize-1)/2) - 10)
-        y0 =  ((20*self.gridSize/2) + (10*(self.gridSize-1)/2) - 9)
 
+    def draw(self):
         for i in range(self.gridSize):
             for j in range(self.gridSize):
-                x, y = x0 + i*(20+10), y0 - j*(20+10)
-                myTurtle.goto(x, y)
-                self.locations[i][j] = cell(myTurtle.pos())
-                self.locations[i][j].stampId = myTurtle.stamp()
-    
+                btn = NButton(master, name=str(i)+"," +
+                              str(j), text=None, bg="white", height=2, width=5)
+                btn.bind('<Button-1>', get)
+                btn.bind('<Button-3>', mark)
+                btn.grid(row=i, column=j)
+                self.locations[i][j] = cell((i, j), btn)
+
     def set_bombs(self):
         i = 0
         while i < self.total_bombs:
-            bomb_x = random.randint(1, self.gridSize - 2)               # replace from (0, gridsize - 1) to avoid bombs
-            bomb_y = random.randint(1, self.gridSize - 2)               # adjacent to walls (nearby count was getting messed up somehow)
-            if not self.locations[bomb_x][bomb_y].is_bomb:  
+            bomb_x = random.randint(0, self.gridSize-1)
+            bomb_y = random.randint(0, self.gridSize-1)
+            if not self.locations[bomb_x][bomb_y].is_bomb:
                 self.locations[bomb_x][bomb_y].is_bomb = True
-
-                try:
+                if bomb_x-1 >= 0 and bomb_y-1 >= 0:
                     self.locations[bomb_x-1][bomb_y-1].nearby += 1
+                if bomb_y-1 >= 0:
                     self.locations[bomb_x][bomb_y-1].nearby += 1
+                if bomb_x+1 <= self.gridSize-1 and bomb_y-1 >= 0:
                     self.locations[bomb_x+1][bomb_y-1].nearby += 1
+                if bomb_x-1 >= 0:
                     self.locations[bomb_x-1][bomb_y].nearby += 1
+                if bomb_x+1 <= self.gridSize-1:
                     self.locations[bomb_x+1][bomb_y].nearby += 1
+                if bomb_x-1 >= 0 and bomb_y+1 <= self.gridSize-1:
                     self.locations[bomb_x-1][bomb_y+1].nearby += 1
+                if bomb_y+1 <= self.gridSize-1:
                     self.locations[bomb_x][bomb_y+1].nearby += 1
+                if bomb_x+1 <= self.gridSize-1 and bomb_y+1 <= self.gridSize-1:
                     self.locations[bomb_x+1][bomb_y+1].nearby += 1
-                except:
-                    continue
 
                 i += 1
-                #print("Bombs: ", bomb_x, bomb_y, i)
+        # printing bombs:
         for i in range(self.gridSize):
             for j in range(self.gridSize):
                 if self.locations[i][j].is_bomb:
@@ -69,32 +80,24 @@ class Grid:
                     print(self.locations[i][j].nearby, end=" ")
             print()
 
-
     def explore(self, cell_x, cell_y):
-        l = [(0, 0), (-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)]
+        l = [(0, 0), (-1, -1), (0, -1), (1, -1),
+             (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)]
         exp_x = cell_x
         exp_y = cell_y
         exp_cell = self.locations[exp_x][exp_y]
         if not exp_cell.revealed:
             exp_cell.revealed = True
             if exp_cell.nearby == 0:
-                myTurtle.goto(exp_cell.pos)
-                myTurtle.color("green")
-                myTurtle.stamp()
-                myTurtle.color("yellow")
+                exp_cell.btn.config(bg="grey")
                 for pair in l:
-                    try:
+                    if 0 <= (cell_x + pair[0]) <= self.gridSize-1 and 0 <= (cell_y + pair[1]) <= self.gridSize-1:
                         exp_x = cell_x + pair[0]
                         exp_y = cell_y + pair[1]
                         exp_cell = self.locations[exp_x][exp_y]
                         self.explore(exp_x, exp_y)
-                    except:
-                        pass
             else:
-                        myTurtle.goto(exp_cell.pos[0]-2, exp_cell.pos[1]-7)
-                        myTurtle.pencolor("black")
-                        myTurtle.write(exp_cell.nearby)
-
+                exp_cell.btn.config(text=exp_cell.nearby)
         self.won()
 
     def end_game(self):
@@ -102,12 +105,7 @@ class Grid:
         for i in range(self.gridSize):
             for j in range(self.gridSize):
                 if self.locations[i][j].is_bomb:
-                    myTurtle.goto(self.locations[i][j].pos)
-                    myTurtle.pd()
-                    myTurtle.color("red")
-                    myTurtle.stamp()
-                    myTurtle.pu()
-        myTurtle.exitonclick()
+                    self.locations[i][j].btn.config(bg="red")
 
     def won(self):
         count = False
@@ -116,34 +114,60 @@ class Grid:
                 if self.locations[i][j].revealed == False:
                     count += 1
         if count == self.total_bombs:
+            for i in range(self.gridSize):
+                for j in range(self.gridSize):
+                    if self.locations[i][j].is_bomb:
+                        self.locations[i][j].btn.config(bg="green")
             print("You won!!!")
-            myTurtle.exitonclick()
 
 
-def get(x, y):
+def get(event):
     #print("x, y: ", x, y)
+    num = [x for x in str(event.widget.name) if x.isdigit()]
+    x = int(''.join(num[:len(num)//2]))
+    y = int(''.join(num[len(num)//2:]))
+
     cell_x = None
     cell_y = None
     for i in range(g.gridSize):
         for j in range(g.gridSize):
-            if (cell_x is None) and g.locations[i][j].pos[0]-10 <= x <= g.locations[i][j].pos[0]+10:
+            if (cell_x is None) and g.locations[i][j].pos[0] <= x <= g.locations[i][j].pos[0]:
                 cell_x = i
-            if (cell_y is None) and g.locations[i][j].pos[1]-10 <= y <= g.locations[i][j].pos[1]+10:
+            if (cell_y is None) and g.locations[i][j].pos[1] <= y <= g.locations[i][j].pos[1]:
                 cell_y = j
     if g.locations[cell_x][cell_y].is_bomb:
         g.end_game()
     else:
         g.explore(cell_x, cell_y)
 
-    
+
+def mark(event):
+    num = [x for x in str(event.widget.name) if x.isdigit()]
+    x = int(''.join(num[:len(num)//2]))
+    y = int(''.join(num[len(num)//2:]))
+
+    cell_x = None
+    cell_y = None
+    for i in range(g.gridSize):
+        for j in range(g.gridSize):
+            if (cell_x is None) and g.locations[i][j].pos[0] <= x <= g.locations[i][j].pos[0]:
+                cell_x = i
+            if (cell_y is None) and g.locations[i][j].pos[1] <= y <= g.locations[i][j].pos[1]:
+                cell_y = j
+    target = g.locations[cell_x][cell_y].btn
+    if target['text'] == '':
+        target.config(text="BOMB", bg="yellow")
+    else:
+        target.config(text='', bg="white")
+
 
 def main():
     global g
-    g = Grid(10)
+    g = myGrid(10)
     g.setup()
-    myTurtle.onscreenclick(get)
-    myTurtle.mainloop()
-    #myTurtle.exitonclick()
+
+    master.mainloop()
+
 
 if __name__ == "__main__":
     main()
