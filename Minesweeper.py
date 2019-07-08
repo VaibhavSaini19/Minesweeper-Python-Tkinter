@@ -101,11 +101,13 @@ class myGrid:
         self.won()
 
     def end_game(self):
+        global finished
+        finished = True
         print("BOMB encountered!!!")
         for i in range(self.gridSize):
             for j in range(self.gridSize):
                 if self.locations[i][j].is_bomb:
-                    self.locations[i][j].btn.config(bg="red")
+                    self.locations[i][j].btn.config(text='BOMB', bg="red")
 
     def won(self):
         count = False
@@ -122,6 +124,9 @@ class myGrid:
 
 
 def get(event):
+    global finished
+    if finished:
+        master.quit()
     #print("x, y: ", x, y)
     num = [x for x in str(event.widget.name) if x.isdigit()]
     x = int(''.join(num[:len(num)//2]))
@@ -162,7 +167,8 @@ def mark(event):
 
 
 def main():
-    global g
+    global g, finished
+    finished = False
     g = myGrid(10)
     g.setup()
 
