@@ -11,7 +11,7 @@ class NButton(Button):
 
 master = Tk()
 master.title("Main window")
-master.geometry("800x600")
+master.geometry("500x450")
 master.resizable(0, 0)
 
 
